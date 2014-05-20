@@ -2,7 +2,7 @@
 
 use CoandaCMS\Coanda\Search\CoandaSearchProvider;
 
-use Elasticsearch, Log, Config, Input, View, Paginator;
+use Elasticsearch, Log, Config, Input, View, Paginator, Coanda;
 
 class CoandaElasticSearchProvider implements CoandaSearchProvider {
 
@@ -74,44 +74,66 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		}
 	}
 
-	public function executeSearch()
+	public function handleSearch()
 	{
 		$query = Input::has('q') ? Input::get('q') : false;
 		$page = Input::has('page') ? Input::get('page') : 1;
 		$per_page = 10;
 		$results_template = Config::get('coanda-elastic-search::elastic.results_template');
 
+		$total = false;
+		$results = false;
+
 		if (!$query)
 		{
-			return 'no query!';
+			$results = [];
+			$total = 0;
 		}
-
-		$this->initClient();
-
-		$query_params['index'] = $this->indexName();
-		$query_params['q'] = $query;
-
-		$offset = ($page - 1) * $per_page;
-
-		$query_params['from'] = $offset;
-		$query_params['size'] = $per_page;
-
-		try
+		else
 		{
-			$search_results = $this->client->search($query_params);
+			$this->initClient();
 
-			$results = Paginator::make($search_results['hits']['hits'], $search_results['hits']['total'], $per_page);
+			$query_params['index'] = $this->indexName();
+			$query_params['q'] = $query;
 
-			return View::make($results_template, [ 'results' => $results, 'query' => $query ]);
+			$offset = ($page - 1) * $per_page;
+
+			$query_params['from'] = $offset;
+			$query_params['size'] = $per_page;
+
+			try
+			{
+				$search_results = $this->client->search($query_params);
+
+				$results = $search_results['hits']['hits'];
+				$total = $search_results['hits']['total'];
+			}
+			catch (\Elasticsearch\Common\Exceptions\Missing404Exception $exception)
+			{
+				dd('Error running search.');
+			}
+			catch (\Elasticsearch\ Common\Exceptions\Curl\CouldNotConnectToHost $exception)
+			{
+				dd('Count not connect to host');
+			}
 		}
-		catch (\Elasticsearch\Common\Exceptions\Missing404Exception $exception)
-		{
-			dd('Error running search.');
-		}
-		catch (\Elasticsearch\ Common\Exceptions\Curl\CouldNotConnectToHost $exception)
-		{
-			dd('Count not connect to host');
-		}
+
+		$paginated_results = Paginator::make($results, $total, $per_page);
+
+		$layout = Coanda::module('layout')->layoutFor('search:results');
+
+		$layout_data = [
+			'content' => View::make($results_template, [ 'results' => $paginated_results, 'query' => $query ]),
+			'meta' => [
+				'title' => 'Search for "' . $query . '"',
+				'description' => ''
+			],
+			'layout' => $layout,
+			'module' => 'search',
+			'module_identifier' => 'results'
+		];
+
+		return View::make($layout->template(), $layout_data);
 	}
 
 }
