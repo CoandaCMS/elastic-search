@@ -18,7 +18,7 @@ class ElasticSearchServiceProvider extends ServiceProvider {
 	 */
 	public function boot()
 	{
-		$this->package('coandacms/elastic-search');
+		$this->package('coandacms/elastic-search', 'coanda-elastic-search');
 	}
 
 	/**
