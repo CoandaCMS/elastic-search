@@ -4,11 +4,21 @@ use CoandaCMS\Coanda\Search\CoandaSearchProvider;
 
 use Elasticsearch, Log, Config, Input, View, Paginator, Coanda;
 
+/**
+ * Class CoandaElasticSearchProvider
+ * @package CoandaCMS\ElasticSearch
+ */
 class CoandaElasticSearchProvider implements CoandaSearchProvider {
 
-	private $client;
+    /**
+     * @var
+     */
+    private $client;
 
-	private function initClient()
+    /**
+     *
+     */
+    private function initClient()
 	{
 		$hosts = Config::get('coanda-elastic-search::elastic.hosts');
 
@@ -18,7 +28,10 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		$this->client = new Elasticsearch\Client($params);
 	}
 
-	private function indexName()
+    /**
+     * @return string
+     */
+    private function indexName()
 	{
 		$index_name = Config::get('coanda-elastic-search::elastic.index_name');
 
@@ -30,7 +43,13 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		return $index_name;
 	}
 
-	public function register($module, $module_id, $url, $search_data)
+    /**
+     * @param $module
+     * @param $module_id
+     * @param $url
+     * @param $search_data
+     */
+    public function register($module, $module_id, $url, $search_data)
 	{
 		$this->initClient();
 
@@ -52,7 +71,11 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		Log::info($index_result);
 	}
 
-	public function unRegister($module, $module_id)
+    /**
+     * @param $module
+     * @param $module_id
+     */
+    public function unRegister($module, $module_id)
 	{
 		try
 		{
@@ -74,7 +97,10 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		}
 	}
 
-	public function handleSearch()
+    /**
+     * @return mixed
+     */
+    public function handleSearch()
 	{
 		$query = Input::has('q') ? Input::get('q') : false;
 		$page = Input::has('page') ? Input::get('page') : 1;
@@ -125,7 +151,7 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		$layout_data = [
 			'content' => View::make($results_template, [ 'results' => $paginated_results, 'query' => $query ]),
 			'meta' => [
-				'title' => 'Search for "' . $query . '"',
+				'title' => 'Search' . ($query ? ' for "' . $query . '"' : ''),
 				'description' => ''
 			],
 			'layout' => $layout,
