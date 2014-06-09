@@ -28,7 +28,12 @@ class ElasticSearchServiceProvider extends ServiceProvider {
 	 */
 	public function register()
 	{
-		//
+		$this->app['coandaelastic.setup'] = $this->app->share(function($app)
+		{
+		    return new \CoandaCMS\ElasticSearch\Artisan\Setup($app);
+		});
+		
+		$this->commands('coandaelastic.setup');
 	}
 
 	/**

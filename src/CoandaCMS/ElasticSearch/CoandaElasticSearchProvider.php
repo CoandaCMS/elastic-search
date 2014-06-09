@@ -43,6 +43,42 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		return $index_name;
 	}
 
+	public function addPagesIndex()
+	{
+		$this->initClient();
+
+		$result = $this->client->indices()->create(['index' => $this->indexName()]);
+
+		return $result;
+	}
+
+	public function setupMappings()
+	{
+		// Set the index and type
+		$params['index'] = $this->indexName();
+		$params['type']  = 'pages';
+
+		// Adding a new type to an existing index
+		$pagesMapping = [
+		    '_source' => [
+		        'enabled' => true
+		    ],
+		    'properties' => [
+		        'visible_to' => [
+		            'type' => 'date',
+		            'format' => 'yyyy-MM-dd HH:mm:ss'
+		        ]
+		    ]
+		];
+
+		$params['body']['pages'] = $pagesMapping;
+
+		// Update the index mapping
+		$result = $this->client->indices()->putMapping($params);
+
+		return $result;
+	}
+
     /**
      * @param $module
      * @param $module_id
@@ -58,9 +94,17 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		$index_params['type'] = $module;
 		$index_params['id'] = $module_id;
 
-		if (!isset($search_data['url']))
+		$search_data['coanda_url'] = $url;
+
+		// If we don't have visibilty dates, then set a pretty generous default!
+		if (!isset($search_data['visible_from']))
 		{
-			$search_data['url'] = $url;
+			$search_data['visible_from'] = '2000-01-01 12:00:00';
+		}
+
+		if (!isset($search_data['visible_to']))
+		{
+			$search_data['visible_to'] = '3000-01-01 12:00:00';
 		}
 
 		$index_params['body'] = $search_data;
@@ -88,7 +132,7 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		
 			$delete_result = $this->client->delete($delete_params);
 
-			Log::info('Elastic search removed: ' . $index . ' -> ' . $module . ' -> ' . $module_id);
+			Log::info('Elastic search removed: ' . $module . ' -> ' . $module_id);
 			Log::info($delete_result);			
 		}
 		catch (\Elasticsearch\Common\Exceptions\Missing404Exception $exception)
@@ -120,12 +164,35 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 			$this->initClient();
 
 			$query_params['index'] = $this->indexName();
-			$query_params['q'] = $query;
 
 			$offset = ($page - 1) * $per_page;
 
 			$query_params['from'] = $offset;
 			$query_params['size'] = $per_page;
+
+			$filter = array();
+			// $filter['range']['visible_from']['lt'] = date('Y-m-d H:m:s', time());
+			// $filter['range']['visible_to']['gt'] = date('Y-m-d H:m:s', time());
+
+
+			// $filter['and']['range']['visible_from']['lt'] = date('Y-m-d H:m:s', time());
+			// $filter['and']['range']['visible_to']['gt'] = date('Y-m-d H:m:s', time());
+
+			// $filter['and']['range']['visible_from']['lt'] = date('Y-m-d H:m:s', time());
+			// $filter['and']['range']['visible_to']['gt'] = date('Y-m-d H:m:s', time());
+
+			$_query = array();
+			// $_query['query_string']['query'] = $query;
+			$_query['match']['_all'] = $query;
+
+			$query_params['body']['query']['filtered'] = array(
+			    "filter" => $filter,
+			    "query"  => $_query
+			);
+
+			// echo '<pre>';
+			// var_export($query_params);
+			// exit();
 
 			try
 			{
