@@ -17,8 +17,8 @@
 			@foreach ($results as $hit)
 				<tr>
 					<td>
-						@if (isset($hit['_source']['url']))
-							<a href="{{ $hit['_source']['url'] }}">{{ $hit['_source']['name'] }}</a>
+						@if (isset($hit['_source']['coanda_url']))
+							<a href="{{ $hit['_source']['coanda_url'] }}">{{ $hit['_source']['name'] }}</a>
 						@else
 							{{ $hit['_source']['name'] }}
 						@endif
