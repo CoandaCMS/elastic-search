@@ -171,28 +171,17 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 			$query_params['size'] = $per_page;
 
 			$filter = array();
-			// $filter['range']['visible_from']['lt'] = date('Y-m-d H:m:s', time());
-			// $filter['range']['visible_to']['gt'] = date('Y-m-d H:m:s', time());
 
-
-			// $filter['and']['range']['visible_from']['lt'] = date('Y-m-d H:m:s', time());
-			// $filter['and']['range']['visible_to']['gt'] = date('Y-m-d H:m:s', time());
-
-			// $filter['and']['range']['visible_from']['lt'] = date('Y-m-d H:m:s', time());
-			// $filter['and']['range']['visible_to']['gt'] = date('Y-m-d H:m:s', time());
+			$filter['and']['filters'][0]['range']['visible_from']['lt'] = date('Y-m-d H:m:s', time());
+			$filter['and']['filters'][1]['range']['visible_to']['gt'] = date('Y-m-d H:m:s', time());
 
 			$_query = array();
-			// $_query['query_string']['query'] = $query;
 			$_query['match']['_all'] = $query;
 
 			$query_params['body']['query']['filtered'] = array(
 			    "filter" => $filter,
 			    "query"  => $_query
 			);
-
-			// echo '<pre>';
-			// var_export($query_params);
-			// exit();
 
 			try
 			{
