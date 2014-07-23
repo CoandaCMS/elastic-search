@@ -147,6 +147,10 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
     public function handleSearch()
 	{
 		$query = Input::has('q') ? Input::get('q') : false;
+
+		// $spelling_suggestion = $this->orthograph($query);
+		// dd($spelling_suggestion);
+
 		$page = Input::has('page') ? Input::get('page') : 1;
 		$per_page = 10;
 		$results_template = Config::get('coanda-elastic-search::elastic.results_template');
@@ -192,11 +196,11 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 			}
 			catch (\Elasticsearch\Common\Exceptions\Missing404Exception $exception)
 			{
-				dd('Error running search.');
+				$results = [];
 			}
 			catch (\Elasticsearch\ Common\Exceptions\Curl\CouldNotConnectToHost $exception)
 			{
-				dd('Count not connect to host');
+				$results = [];
 			}
 		}
 
@@ -217,5 +221,4 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 
 		return View::make($layout->template(), $layout_data);
 	}
-
 }
