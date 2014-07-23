@@ -23,11 +23,11 @@
 							{{ $hit['_source']['name'] }}
 						@endif
 					</td>
-					<td>Score (debug): {{ $hit['_score'] }}</td>
 					{{--
-					<td>
-						<pre>{{ var_export($hit['_source']) }}</pre>
-					</td>
+						<td>Score (debug): {{ $hit['_score'] }}</td>
+						<td>
+							<pre>{{ var_export($hit) }}</pre>
+						</td>
 					--}}
 				</tr>
 			@endforeach
