@@ -64,9 +64,16 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		        'enabled' => true
 		    ],
 		    'properties' => [
+		        'visible_from' => [
+		            'type' => 'date',
+		            'format' => 'yyyy-MM-dd HH:mm:ss'
+		        ],
 		        'visible_to' => [
 		            'type' => 'date',
 		            'format' => 'yyyy-MM-dd HH:mm:ss'
+		        ],
+		        'date' => [
+		            'type' => 'string'
 		        ]
 		    ]
 		];
@@ -183,8 +190,8 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 			$_query['match']['_all'] = $query;
 
 			$query_params['body']['query']['filtered'] = array(
-			    "filter" => $filter,
-			    "query"  => $_query
+			    'filter' => $filter,
+			    'query'  => $_query
 			);
 
 			try
