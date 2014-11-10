@@ -116,10 +116,7 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 
 		$index_params['body'] = $search_data;
 
-		$index_result = $this->client->index($index_params);
-
-		Log::info('Elastic search indexed: ' . $module . ' -> ' . $module_id);
-		Log::info($index_result);
+		$this->client->index($index_params);
 	}
 
     /**
@@ -136,11 +133,8 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 			$delete_params['index'] = $this->indexName();
 			$delete_params['type'] = $module;
 			$delete_params['id'] = $module_id;
-		
-			$delete_result = $this->client->delete($delete_params);
 
-			Log::info('Elastic search removed: ' . $module . ' -> ' . $module_id);
-			Log::info($delete_result);			
+			$this->client->delete($delete_params);
 		}
 		catch (\Elasticsearch\Common\Exceptions\Missing404Exception $exception)
 		{
@@ -154,9 +148,6 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
     public function handleSearch()
 	{
 		$query = Input::has('q') ? Input::get('q') : false;
-
-		// $spelling_suggestion = $this->orthograph($query);
-		// dd($spelling_suggestion);
 
 		$page = Input::has('page') ? Input::get('page') : 1;
 		$per_page = 10;
@@ -205,7 +196,7 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 			{
 				$results = [];
 			}
-			catch (\Elasticsearch\ Common\Exceptions\Curl\CouldNotConnectToHost $exception)
+			catch (\Elasticsearch\Common\Exceptions\Curl\CouldNotConnectToHost $exception)
 			{
 				$results = [];
 			}
