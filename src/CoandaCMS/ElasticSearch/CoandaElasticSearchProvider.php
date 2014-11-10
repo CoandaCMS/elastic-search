@@ -209,7 +209,7 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		$layout_data = [
 			'content' => View::make($results_template, [ 'results' => $paginated_results, 'query' => $query ]),
 			'meta' => [
-				'title' => 'Search' . ($query ? ' for "' . $query . '"' : ''),
+				'title' => 'Search' . (htmlentities($query) ? ' for "' . htmlentities($query) . '"' : ''),
 				'description' => ''
 			],
 			'layout' => $layout,
