@@ -10,12 +10,12 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 
 	/**
 	 * @var
-     */
+	 */
 	private $client;
 
 	/**
 	 *
-     */
+	 */
 	private function initClient()
 	{
 		$hosts = Config::get('coanda-elastic-search::elastic.hosts');
@@ -28,7 +28,7 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 
 	/**
 	 * @return string
-     */
+	 */
 	private function indexName()
 	{
 		$index_name = Config::get('coanda-elastic-search::elastic.index_name');
@@ -43,7 +43,7 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 
 	/**
 	 * @return mixed
-     */
+	 */
 	public function addPagesIndex()
 	{
 		$this->initClient();
@@ -55,7 +55,7 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 
 	/**
 	 * @return mixed
-     */
+	 */
 	public function setupMappings()
 	{
 		// Set the index and type
@@ -64,22 +64,22 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 
 		// Adding a new type to an existing index
 		$pagesMapping = [
-		    '_source' => [
-		        'enabled' => true
-		    ],
-		    'properties' => [
-		        'visible_from' => [
-		            'type' => 'date',
-		            'format' => 'yyyy-MM-dd HH:mm:ss'
-		        ],
-		        'visible_to' => [
-		            'type' => 'date',
-		            'format' => 'yyyy-MM-dd HH:mm:ss'
-		        ],
-		        'date' => [
-		            'type' => 'string'
-		        ]
-		    ]
+			'_source' => [
+				'enabled' => true
+			],
+			'properties' => [
+				'visible_from' => [
+					'type' => 'date',
+					'format' => 'yyyy-MM-dd HH:mm:ss'
+				],
+				'visible_to' => [
+					'type' => 'date',
+					'format' => 'yyyy-MM-dd HH:mm:ss'
+				],
+				'date' => [
+					'type' => 'string'
+				]
+			]
 		];
 
 		$params['body']['pages'] = $pagesMapping;
@@ -150,16 +150,14 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 
 	/**
 	 * @return mixed
-     */
+	 */
 	public function handleSearch()
 	{
 		$query = Input::has('q') ? Input::get('q') : false;
 		$page = Input::has('page') ? Input::get('page') : 1;
 		$per_page = 10;
-		$results_template = Config::get('coanda-elastic-search::elastic.results_template');
 
-		$total = false;
-		$results = [];
+		$results_template = Config::get('coanda-elastic-search::elastic.results_template');
 
 		if (!$query)
 		{
@@ -168,36 +166,6 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		}
 		else
 		{
-			$this->initClient();
-
-			$query_params['index'] = $this->indexName();
-
-			$offset = ($page - 1) * $per_page;
-
-			$query_params['from'] = $offset;
-			$query_params['size'] = $per_page;
-
-			$filter = [
-				'and' => [
-					'filters' => [
-						[
-							'range' => [
-								'visible_from' => [
-									'lt' => date('Y-m-d H:m:s', time())
-								]
-							]
-						],
-						[
-							'range' => [
-								'visible_to' => [
-									'gt' => date('Y-m-d H:m:s', time())
-								]
-							]
-						],
-					]
-				]
-			];
-
 			$page_type_string = Input::has('type') ? Input::get('type') : '';
 			$page_types = [];
 
@@ -206,39 +174,14 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 				$page_types = explode(',', $page_type_string);
 			}
 
-			if (count($page_types) > 0)
-			{
-				$filter['and']['filters'][] = [
-					'terms' => [
-							'page_type' => $page_types
-						]
-				];
-			}
+			$search_results = $this->query($query, [
+				'per_page' => $per_page,
+				'page' => $page,
+				'page_types' => $page_types
+			]);
 
-			$query_params['body']['query']['filtered'] = array(
-				'filter' => $filter,
-				'query'  => [
-					'match' => [
-						'_all' => $query
-					]
-				]
-			);
-
-			try
-			{
-				$search_results = $this->client->search($query_params);
-
-				$results = $search_results['hits']['hits'];
-				$total = $search_results['hits']['total'];
-			}
-			catch (Missing404Exception $exception)
- 			{
-				// empty results
-			}
-			catch (CouldNotConnectToHost $exception)
-			{
-				// empty results
-			}
+			$total = $search_results['total'];
+			$results = $search_results['results'];
 		}
 
 		$paginated_results = Paginator::make($results, $total, $per_page);
@@ -265,5 +208,90 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 		];
 
 		return View::make($layout->template(), $layout_data);
+	}
+
+	/**
+	 * @param $query
+	 * @param array $parameters
+	 * @return array
+	 */
+	public function query($query, $parameters = [])
+	{
+		$results = [];
+		$total = 0;
+
+		$this->initClient();
+
+		$query_params['index'] = $this->indexName();
+
+		$page = isset($parameters['page']) ? $parameters['page'] : 1;
+		$per_page = isset($parameters['per_page']) ? $parameters['per_page'] : 10;
+
+		$offset = ($page - 1) * $per_page;
+
+		$query_params['from'] = $offset;
+		$query_params['size'] = $per_page;
+
+		$filter = [
+			'and' => [
+				'filters' => [
+					[
+						'range' => [
+							'visible_from' => [
+								'lt' => date('Y-m-d H:m:s', time())
+							]
+						]
+					],
+					[
+						'range' => [
+							'visible_to' => [
+								'gt' => date('Y-m-d H:m:s', time())
+							]
+						]
+					],
+				]
+			]
+		];
+
+		$page_types = isset($parameters['page_types']) ? $parameters['page_types'] : [];
+
+		if (count($page_types) > 0)
+		{
+			$filter['and']['filters'][] = [
+				'terms' => [
+					'page_type' => $page_types
+				]
+			];
+		}
+
+		$query_params['body']['query']['filtered'] = array(
+			'filter' => $filter,
+			'query'  => [
+				'match' => [
+					'_all' => $query
+				]
+			]
+		);
+
+		try
+		{
+			$search_results = $this->client->search($query_params);
+
+			$results = $search_results['hits']['hits'];
+			$total = $search_results['hits']['total'];
+		}
+		catch (Missing404Exception $exception)
+		{
+			// empty results
+		}
+		catch (CouldNotConnectToHost $exception)
+		{
+			// empty results
+		}
+
+		return [
+			'results' => $results,
+			'total' => $total
+		];
 	}
 }
