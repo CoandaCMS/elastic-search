@@ -12,5 +12,15 @@ return array(
 		'http://localhost:9200',
 	],
 
-	'results_template' => 'coanda-elastic-search::results'
+	'index_name' => 'site',
+
+	'results_template' => 'coanda-elastic-search::results',
+
+	'defined_filters' => [
+//		'example' => [
+//			'page_types' => ['page', 'news_article'],
+//			'paths' => ['location-in-your-site']
+//		]
+	]
+
 );

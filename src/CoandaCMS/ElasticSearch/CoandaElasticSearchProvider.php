@@ -78,6 +78,10 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 				],
 				'date' => [
 					'type' => 'string'
+				],
+				'coanda_url' => [
+					'type' => 'string',
+					'index' => 'not_analyzed'
 				]
 			]
 		];
@@ -174,10 +178,13 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 				$page_types = explode(',', $page_type_string);
 			}
 
+			$filter = Input::has('filter') ? Input::get('filter') : false;
+
 			$search_results = $this->query($query, [
 				'per_page' => $per_page,
 				'page' => $page,
-				'page_types' => $page_types
+				'page_types' => $page_types,
+				'filter' => $filter
 			]);
 
 			$total = $search_results['total'];
@@ -264,11 +271,41 @@ class CoandaElasticSearchProvider implements CoandaSearchProvider {
 			];
 		}
 
+		$defined_filter = isset($parameters['filter']) ? $parameters['filter'] : false;
+		$defined_filters = Config::get('coanda-elastic-search::elastic.defined_filters');
+
+		if ($defined_filter)
+		{
+			$filter_parameters = isset($defined_filters[$defined_filter]) ? $defined_filters[$defined_filter] : [];
+
+			if (isset($filter_parameters['page_types']))
+			{
+				$filter['and']['filters'][] = [
+					'terms' => [
+						'page_type' => $filter_parameters['page_types']
+					]
+				];
+			}
+
+			if (isset($filter_parameters['paths']))
+			{
+				foreach ($filter_parameters['paths'] as $path)
+				{
+					$filter['and']['filters'][] = [
+						'prefix' => [
+							'coanda_url' => $path
+						],
+					];
+				}
+			}
+		}
+
 		$query_params['body']['query']['filtered'] = array(
 			'filter' => $filter,
 			'query'  => [
-				'match' => [
-					'_all' => $query
+				'multi_match' => [
+					'query' => $query,
+					'fields' => ['name', 'attributes.*']
 				]
 			]
 		);
